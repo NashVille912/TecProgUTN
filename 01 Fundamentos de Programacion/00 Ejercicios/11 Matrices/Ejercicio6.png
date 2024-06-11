@@ -1,0 +1,346 @@
+gFileRecord catFileRec =
+                                        (CommonHFSCatalogFileRecord)rec;
+				CommonHFSCatalogFile catFile =
+                                        catFileRec.getData();
+
+				if(catFile.getFileID().toLong() == nextID) {
+				    selectedFileRecord = rec;
+				    selectedFile = catFile;
+				    break;
+				}
+			    }
+			}
+			if(selectedFileRecord == null) {
+			    println("ID not present in dir.");
+			    //nextID = -1;
+			}
+			else {
+			    String dataForkFilename = selectedFileRecord.getKey().getNodeName().toString();
+			    FileOutputStream dataOut = new FileOutputStream(dataForkFilename);
+			    print("Extracting data fork to file \"" + dataForkFilename + "\"...");
+			    try {
+				long bytesExtracted =
+                                        fsView.extractDataForkToStream(selectedFileRecord, dataOut,
+                                        NullProgressMonitor.getInstance());
+				println("extracted " + bytesExtracted + " bytes.");
+				dataOut.close();
+			    } catch(IOException ioe) {
+				ioe.printStackTrace();
+				try { dataOut.close(); } catch(IOException ioe2) {}
+				continue; // or rather... don't continue (: mwahaha
+			    }
+
+			    String resourceForkFilename = dataForkFilename + ".resourcefork";
+			    FileOutputStream resourceOut = new FileOutputStream(resourceForkFilename);
+			    print("Extracting resource fork to file \"" + resourceForkFilename + "\"...");
+			    try {
+				long bytesExtracted =
+                                        fsView.extractResourceForkToStream(selectedFileRecord,
+                                        resourceOut, NullProgressMonitor.getInstance());
+				println("extracted " + bytesExtracted + " bytes.");
+				resourceOut.close();
+			    } catch(IOException ioe) {
+				ioe.printStackTrace();
+				try { dataOut.close(); } catch(IOException ioe2) {}
+			    }
+			    //break; // to reread the directory
+			}
+
+		    } catch(FileNotFoundException fnfe) {
+			fnfe.printStackTrace();
+		    } catch(NumberFormatException nfe) {
+			//nextID = -1;
+			println("Invalid input!");
+		    }
+		}
+		else if(input.startsWith("info ")) {
+		    input = input.substring("info ".length()).trim();
+		    try {
+			long nextID = Long.parseLong(input);
+
+			CommonHFSCatalogLeafRecord selectedFileRecord = null;
+			for(CommonHFSCatalogLeafRecord rec : recordsInDir) {
+
+			    if(rec instanceof CommonHFSCatalogFileRecord) {
+				CommonHFSCatalogFileRecord catFileRec =
+                                        (CommonHFSCatalogFileRecord) rec;
+                                CommonHFSCatalogFile catFile =
+                                        catFileRec.getData();
+
+				if(catFile.getFileID().toLong() == nextID) {
+				    selectedFileRecord = rec;
+				    rec.print(System.out, "");
+				    break;
+				}
+			    }
+			}
+			if(selectedFileRecord == null) {
+			    println("ID not present in dir.");
+			    //nextID = -1;
+			}
+		    } catch(NumberFormatException nfe) {
+			//nextID = -1;
+			println("Invalid input!");
+		    }
+		}
+		else if(input.startsWith("cdn ")) {
+		    input = input.substring("cdn ".length()).trim();
+		    if(input.equals("..")) {
+			println("Not yet implemented.");
+			// TODO: Implement this.
+		    }
+		    else {
+			try {
+			    long nextID = Long.parseLong(input);
+			    CommonHFSCatalogLeafRecord nextDir = null;
+			    for(CommonHFSCatalogLeafRecord rec : recordsInDir) {
+
+				if(rec instanceof CommonHFSCatalogFolderRecord) {
+				    //System.out.println(rec.getKey().getNodeName() + ".equals(" + input +")");
+				    CommonHFSCatalogFolderRecord catFolderRec =
+                                            (CommonHFSCatalogFolderRecord) rec;
+				    CommonHFSCatalogFolder catFolder =
+                                            catFolderRec.getData();
+
+				    if(catFolder.getFolderID().toLong() == nextID) {
+					nextDir = rec;
+					break;
+				    }
+				}
+			    }
+			    if(nextDir == null) {
+				println("ID not present in dir.");
+				//nextID = -1;
+			    }
+			    else {
+				pathStack.addLast(nextDir.getKey().getNodeName().toString());
+				pathThread.addLast(currentDir);
+				currentDir = nextDir{"version":3,"file":"Scheme.js","names":["_iosPlugins","data","require","withScheme","createInfoPlistPluginWithPropertyGuard","setScheme","infoPlistProperty","expoConfigProperty","exports","getScheme","config","Array","isArray","scheme","validate","value","filter","infoPlist","_config$ios","_config$ios2","ios","bundleIdentifier","push","length","CFBundleURLTypes","CFBundleURLSchemes","appendScheme","_infoPlist$CFBundleUR","existingSchemes","some","includes","removeScheme","map","bundleUrlType","index","indexOf","splice","undefined","Boolean","hasScheme","schemes","getSchemesFromPlist","reduce"],"sources":["../../src/ios/Scheme.ts"],"sourcesContent":["import { ExpoConfig } from '@expo/config-types';\n\nimport { createInfoPlistPluginWithPropertyGuard } from '../plugins/ios-plugins';\nimport { InfoPlist, URLScheme } from './IosConfig.types';\n\nexport const withScheme = createInfoPlistPluginWithPropertyGuard(\n  setScheme,\n  {\n    infoPlistProperty: 'CFBundleURLTypes',\n    expoConfigProperty: 'scheme',\n  },\n  'withScheme'\n);\n\nexport function getScheme(config: { scheme?: string | string[] }): string[] {\n  if (Array.isArray(config.scheme)) {\n    const validate = (value: any): value is string => {\n      return typeof value === 'string';\n    };\n    return config.scheme.filter<string>(validate);\n  } else if (typeof config.scheme === 'string') {\n    return [config.scheme];\n  }\n  return [];\n}\n\nexport function setScheme(\n  config: Partial<Pick<ExpoConfig, 'scheme' | 'ios'>>,\n  infoPlist: InfoPlist\n): InfoPlist {\n  const scheme = [\n    ...getScheme(config),\n    // @ts-ignore: TODO: ios.scheme is an unreleased -- harder to add to turtle v1.\n    ...getScheme(config.ios ?? {}),\n  ];\n  // Add the bundle identifier to the list of schemes for easier Google auth and parity with Turtle v1.\n  if (config.ios?.bundleIdentifier) {\n    scheme.push(config.ios.bundleIdentifier);\n  }\n  if (scheme.length === 0) {\n    return infoPlist;\n  }\n\n  return {\n    ...infoPlist,\n    CFBundleURLTypes: [{ CFBundleURLSchemes: scheme }],\n  };\n}\n\nexport function appendScheme(scheme: string | null, infoPlist: InfoPlist): InfoPlist {\n  if (!scheme) {\n    return infoPlist;\n  }\n\n  const existingSchemes = infoPlist.CFBundleURLTypes ?? [];\n  if (existingSchemes?.some(({ CFBundleURLSchemes }) => CFBundleURLSchemes.includes(scheme))) {\n    return infoPlist;\n  }\n\n  return {\n    ...infoPlist,\n    CFBundleURLTypes: [\n      ...existingSchemes,\n      {\n        CFBundleURLSchemes: [scheme],\n      },\n    ],\n  };\n}\n\nexport function removeScheme(scheme: string | null, infoPlist: InfoPlist): InfoPlist {\n  if (!scheme) {\n    return infoPlist;\n  }\n\n  // No need to remove if we don't have any\n  if (!infoPlist.CFBundleURLTypes) {\n    return infoPlist;\n  }\n\n  infoPlist.CFBundleURLTypes = infoPlist.CFBundleURLTypes.map((bundleUrlType) => {\n    const index = bundleUrlType.CFBundleURLSchemes.indexOf(scheme);\n    if (index > -1) {\n      bundleUrlType.CFBundleURLSchemes.splice(index, 1);\n      if (bundleUrlType.CFBundleURLSchemes.length === 0) {\n        return undefined;\n      }\n    }\n    return bundleUrlType;\n  }).filter(Boolean) as URLScheme[];\n\n  return infoPlist;\n}\n\nexport function hasScheme(scheme: string, infoPlist: InfoPlist): boolean {\n  const existingSchemes = infoPlist.CFBundleURLTypes;\n\n  if (!Array.isArray(existingSchemes)) return false;\n\n  return existingSchemes?.some(({ CFBundleURLSchemes: schemes }: any) =>\n    Array.isArray(schemes) ? schemes.includes(scheme) : false\n  );\n}\n\nexport function getSchemesFromPlist(infoPlist: InfoPlist): string[] {\n  if (Array.isArray(infoPlist.CFBundleURLTypes)) {\n    return infoPlist.CFBundleURLTypes.reduce<string[]>((schemes, { CFBundleURLSchemes }) => {\n      if (Array.isArray(CFBundleURLSchemes)) {\n        return [...schemes, ...CFBundleURLSchemes];\n      }\n      return schemes;\n    }, []);\n  }\n  return [];\n}\n"],"mappings":";;;;;;;;;;;;AAEA,SAAAA,YAAA;EAAA,MAAAC,IAAA,GAAAC,OAAA;EAAAF,WAAA,YAAAA,CAAA;IAAA,OAAAC,IAAA;EAAA;EAAA,OAAAA,IAAA;INDX( 	 ñİr…          (   ˜  è           ¯  Ù  i         Rƒ    ˆ x     9    bµ&`øÙ š8ºm¯;µµ&`øÙ@‡µ&`øÙ      ‰               J R e a c t S o f t E x c e p t i o n L o g g e r . h Z    € j     9    Ã"(&`øÙ š8ºm¯ÇI(&`øÙP(&`øÙğ      ë               J R u n t i m e E x e c u t o r . c p p       Tƒ    x f     9    ;µµ&`øÙ š8ºm¯;µµ&`øÙ@‡µ&`øÙ°      ©               J R u n t i m e E x e c u t o r . h c [    € l     9    ÇI(&`øÙ š8ºm¯ÇI(&`øÙ`;(&`øÙ                    J R u n t i m e S c h e d u l e r . c p p     Uƒ    x h     9    ;µµ&`øÙ š8ºm¯;µµ&`øÙP®µ&`øÙ       ô               J R u n t i m e S c h e d u l e r . h m    p Z     9    2Ô(&`øÙ š8ºm¯2Ô(&`øÙ ×(&`øÙ       ê
+               J S L o a d e r . c p p       gƒ    h V     9    R¶&`øÙ š8ºm¯x¶&`øÙJ¶&`øÙ       @              
+ J S L o a d e r . h c n    p \     9    2Ô(&`øÙ š8ºm¯2Ô(&`øÙ ×(&`øÙ°      ®               J S L o g g i n g . c p p    hƒ    h X     9    R¶&`øÙ š8ºm¯x¶&`øÙJ¶&`øÙ                     J S L o g g i n g . h     x d     9    PX*&`øÙ š8ºm¯K*&`øÙ@^*&`øÙ 0      &$               M e t h o d I n v o k e r . c p p     ‰ƒ    p `     9    Çp·&`øÙ š8ºm¯Çp·&`øÙ \·&`øÙ       é               M e t h o d I n v o k e r . h ‘    ˆ t     9    K*&`øÙ š8ºm¯K*&`øÙ@^*&`øÙ       	               M o d u l e R e g i s t r y B u i l d e r . c p p     ƒ    € p     9    Çp·&`øÙ š8ºm ¿—·&`øÙƒ·&`øÙ       k               M o d u l e R e g i s t r y B u i l d e r . h –    p `     9    &Í*&`øÙ š8ºm¯&Í*&`øÙ`¬*&`øÙ       $               N a t i v e A r r a y . c p p ”ƒ    p \     9    ¿—·&`øÙ š8ºm¯¿—·&`øÙƒ·&`øÙ       w               N a t i v e A r r a y . h c p —    x b     9    &Í*&`øÙ š8ºm¯&Í*&`øÙ`¬*&`øÙ       n               N a t i v e C o m m o n . c p p       •ƒ    p ^     9    ¿—·&`øÙ š8ºm¯¿—·&`øÙƒ·&`øÙ       Ü              N a t i v e C o m m o n . h   ™    p \     9    &Í*&`øÙ š8ºm¯&Í*&`øÙ`¬*&`øÙ       3               N a t i v e M a p . c p p     —ƒ    h X     9    ¿—·&`øÙ š8ºm¯¿½·&`øÙƒ·&`øÙ                       N a t i v e M a p . h ¥    h V     9    +&`øÙ š8ºm¯+&`øÙ!+&`øÙ       •	              
+ O n L o a d . c p p   «ƒ    h R     9    3¸&`øÙ š8ºm¯3¸&`øÙP¸&`øÙX      U               O n L o a d . h c u t ¼    x d     9    µ~,&`øÙ š8ºm¯µ~,&`øÙZ,&`ø         æ               P r o x y E x e c u t o r . c p p     Íƒ    p `     9    E¹&`øÙ š8ºm¯y¹&`øÙĞW¹&`øÙ       4               P r o x y E x e c u t o r . h Î    € p     9    ¤Ì,&`øÙ š8ºm¯¢ó,&`øÙ@Ï,&`øÙ       ›               R e a d a b l e N a t i v e A r r a y . c p p }…    € l     9    ¢	Æ&`øÙ š8ºm¯¢	Æ&`øÙ Æ&`øÙ       u               R e a d a b l e N a t i v e A r r a y . h     Ï    € l     9    ¢ó,&`øÙ š8ºm¯¢ó,&`øÙ@Ï,&`øÙ       ¬              R e a d a b l e N a t i v e M a p . c p p     ~…    x h     9    ¢	Æ&`øÙ š8ºm¯¢	Æ&`øÙ Æ&`øÙ       Â               R e a d a b l e N a t i v e M a p . h U‚    € p     9    X3&`øÙ š8ºm¯X3&`øÙĞ3&`øÙ       ˆ	               W r i t a b l e N a t i v e A r r a y . c p p †    € l     9    MğÉ&`øÙ š8ºm¯ûÊ&`øÙ ùÉ&`øÙ       É               W r i t a b l e N a t i v e A r r a y . h     V‚    € l     9    X3&`øÙ š8ºm¯W73&`øÙĞ3&`øÙ                      W r  t a b l e N a t i v e M a p . c p p     †    x h     9    ûÊ&`øÙ š8ºm¯ûÊ&`øÙ ùÉ&`øÙ       ]               W r i t a b l e N a t i v e M a p . h                                                                                                                                                                                                                                                                                                                                                              V*Ÿƒ1ô&¡¼i&PNY­ä1¸æ
+İ$P”a(Š°5zRô–æÍíš,Xïİ}W$J|Mêßz¾˜¯O^%¾Ğê"N%XÒ/CÌµµó›-\²[´}áS›Gk­ˆÕ?²^ŸÓÆñk`{‹Q™”ƒh´´¼ôîá`8Wæ;Ğ$ŞÍ$®OãÙsg!¬­—çmrêÔ©“¶	vÈ,€Ó†ºÜd§«˜={î¹rğŸçûQ^—­…ùÙú¦¯nğñx«ëC›T8’‚¤®BÑŞGõM º=èŞ74%Ã½ÀŸiÊÏÄ&$ı'ÌH´Ş¿Hu.Ò™+Xİ¡úú×)@Q­üÍ"[FßP.ÀGO¿zü…öĞ
+v]éBÓşE|ñ<wní£åEz¨ºHU~Û¯^«Á_y›U¯”*ï^hÆ/^3	´ƒ_p§3	ğæXÁş*^áêûúåÍR­ü“Ö%vn~æçgêQÑh«8y‚*<ò„õvñåãÇ/ŸOìYõ{T'©ÿà<0n-#ŸÍrÙ`“^÷(ŠÉz,¨mlm=÷Ä}x›¦D•¼·¾±°¸XOŞÕ²Wİô[ãÍz<Uƒ¾ªéLjMÉB~®‡b…e<©”İyä•*üÊ6ëyP¼‹¶ÛPtûÏë61˜Ô@ÑL “I-vîìéêmT“:]ğ ¿Ô	 ›m¾öìs¿èĞ÷Œ‹ñ]õ$P>C¯|NB}üÕ"Z·sªVR¡3h.b3ø‹vBˆ±@º|œÆ·ª”
+¨M^:vìc++Ëo)o¨¹Šz\“/Z#†µÍ1¬o_l' Š…&…€Åµ2ø«ÇæWŸzê?ÍÍ/,–ÛùWO|¡ xò„/¾øÒ76·şE¯?;{î•ö¼à./M¹D·¼±ÏÅÌæÊI`XŠÁ¸këõÊ_™vVĞÙ˜Âéû§)Û_Lß£©œ2¡Ë>mğSº=^ì­ÑH¼ãâU0âVÑqU"¯ üTG T­¯¯¿ğìÓO>Ú ïi¢V¸ĞI ‘¯PÏÍ§Ÿyöçzffv¥IİôokR`Á}Û'E6‘"rOq<yaÏyËœqÇ½øÜm·İr¤×ë¯nnnˆ‹¢wîüÚç{öé_‡†5Ea‡"¯•G/—Ëå«§N-ŸÏ·ggÒş~ÂŸ°UŞUÇûJ{Ì;’—Ú¦{Tè:’NCzú©Oúı=ó‹ô®úošúOÍ<ª—òßKå*ˆìıÁc!¯íŞu!Ïl÷ç´ªÜéwŞĞi«7L^¾jBàæÀÛª FxÒæÿUT´QÆşÏ<õäÏ•À)úì4˜´Ïâ¥—^~j4úÊ¿½çî»~¼Ì3oªÃ”ñ¸Ã‡P‹—H¡ÁàšEVIoj» FÀ`a_üèrÏ†ÃQõÏ—¿øÅ/ü‡^Ûl¸FõZ1>{öÌñv0LÚÁ› vk0\±qÏZgzâ®¯51twgRcCSg¯}†LôC—0	j_ø=U×ÆÆÆä}ñ×V–W>R~ë Ü¯ª=ª%níü™™Ûï¸ãÇÊûëp­!¾şbÁ!Ó–ˆêÂ)ÚëQ°h4cu)Ådíà§.jÕ'!E«fÚ`÷5	°zÑ¦?ÕQ5uÿüú¹ãO~é‹?÷Ô“!ÁÌ$pA×ëbp …ó¬wà™g{òÕWOı«î¿ï¯>tøİa¶?[W4«‚MhÑjõµ,XŸ–Ó&u™œX—IgƒFgä“·³Î$Pí£¶ïÀó'¿|Víÿ¸İïêu\îçKÈü¹ÁğZŸ øÀã×kÌ~æ)OO==ÃÉN zñĞ7*¶ßYİeÄòêËt(â„„Øëc=ÀX|×‘!or_„¢³Ò÷7@‰¿W‘Ÿ¨«WÅêSÄ9´a;ÊA&r%S 5ø5ê…šû77ÆkG>ûŸÿ³?ş?Ç_~ñ([„'|,îvÍÿÙ@ªŸ§OŸyõãŸøÃ:tğ“G¹÷àƒ÷—iÁşşp0Ûå
+IlióNÍ—GÓ‡µ5ç|)&TËzQ¬F£óÎ ˆB	[ì9áÅ@6à{×Ø€™ëÇ£¶1»YxÄÓcƒnÚ1Ó%L ŞŠÏwüîa¦&ãÉÉõõµÕbRŒÛûEßÚa†“šø ‚<$4şB <ƒˆÒ öyüÏüÌ•G»ïãÕ‰fĞ—‡[¬­­¯½ôÒG?ÿÌ3_ıËçyºªßl¨Á?Qçõ¢&€í€İƒö9Ó>çÙs¶}Ú¿©gîùùùÙùù…Ùá°†ÆœÔõTq5âÄ«|hª u‹+ºåù;öÒKU«rK€8è7Ûç|E
+ÎóZüzÀêI{¬nş÷À«	]ì$Pd" dß=h'€øŒ÷\½}ïŞ}KƒòQ´Î™Uí‚(5ê›±"Ón¥úÍÑşÜÜXÌÏ ‰o;¯$û™.æóÊÇ¸|œ9}ú|™îo±kïÙJõç|û<Û¾®µ¿ßt&ùú±SE Jò•$®¤ƒöµÇVÊ¨zœ¿B+§.0ñ›\ïï¦zæVE¾^K@.àQ›Nyz*äöÂÿİ˜ ¼ü?.0“L«°NNœ8şê”âìõöĞ‘ÓØ‰\·Øï'™âê®Õ ÈYI7Û·Én~Á½érŸ,S£P'pÓyn©ˆ*ú¹VÂÿœº	èâ­SĞEÀ\:q)i@á´ÿâ÷Õ ¯¥.P^¯“ eÆÜXE¯[*zõÒ€]Ÿ H…’[mNÒS+d¡BIÌ—ú/ëàŸL™=§M  Rk© ˆÛ½ãÌ¥;¹Ö¥^#ju@g¡‰Ïş6“Àõ¼úó7Š~n8)ìe‰ xqRÏF=gå'Îõ®ĞEÊ~ñsSMcUÔQ \£“@n&g¢Ã(ş]JĞCªñ	`2eòu¥ä[•x~Rãm“~=èÂêe‰ âÅ	ígåŸ´œ¾3à˜ ôàç«îu’Y¯µ?-²š†×Ø‡Ì;½±õƒO zào±B /ö¯Ó(`»ğ?7L.wÀÛ){ÅŠ¾3S_Z€.Mœï=õM§óÜkœÛçíÂøíj;ø¹Ïà–‡1;“@d«²wh/å~.À/^{)ÀEGi+8“Ìê;fEA~¡vä]~/wä«;ğºh²]õZ[Y¦ÕZè"ß¿-îR&T‹‡—ÆÅ…dKM ½+]^­@Ÿ¯ óÿËğœdBğ¸“Û]$¼L3¦>ig¥/2Ïœ¨Âµzcáe¸1wës8¼ÁoáÆÒ¸}İÊ¯—	€2Z‘Ii½ößE?ú—pL2¹
+Ï®ÔEÊ‘•Æ`ÛúFÛNL®ƒ
+¯â ¿ÏÖöÃAÕ›âD¦,,×Ë@™¨–ßÏcğQ•—-Ø.Ôá·Ğ\î6à´I`y¶íBqëZ›^ËûÅ¯!ïJğ{ª×7ˆ¶™¦E®}û—xÑøê‹…0C_±	¯å5íD]¯ƒşZ\ù<ÍW=ŒÕ p}ôı›[ñ/{
+p13wÎ¤ğJŸ8ÚfÅ¿ñxmOÙáúPkºĞT`»ûø’îåş.ì¬7s{¯àÉƒ¯³ÿë!m¡«x_]íã†Ëu/÷wy§s.š¯•“xãqí§×ëÀ¿*÷pÿÆà»ñ¸1 ¾~áÆ)¸ñ¸ñøú}dAn<n<n<nD 7777&€ÀÇÇÇ	àÆãÆãÆãúxü éµIˆYe    IEND®B`‚                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      INDX( 	 ½)%†           (     è       Ù                    ¶X    p Z     öW    [~#`øÙ %wmÉ·ÒÚ¹#`øÙ °#`øÙ        Ì               C H A N G E L O G . m d Z     åX    ` J     öW    #`øÙò4#`øÙò4#`øÙò4#`øÙ                        d i s t N S E ¥\    X H     öW    “–#`øÙVA#`øÙVA#`øÙVA#`øÙ                        l i b “X    ` P     öW    ¤"}#`øÙ %wmÉ·Ò[~#`øÙàÛ}#`øÙ       ö               L I C E N S E V    p Z     öW    Ö%õ3`øÙ’•4`øÙß•94`øÙ’•4`ø         /               p a c k a g e . j s o n     ]X    h T     öW    v{#`øÙ %wmÉ·Ò¤"}#`øÙ€ñ|#`øÙ `      ¸[              	 R E A D M E . m d     ¤X    p \     öW    ğ˜}#`øÙ€»nÉ·Ò‡Pò2ÊÚ x~#`øÙ˜      •         (   s o u r c e - m a p . j s                                 öW    ğ˜}#`øÙ€»nÉ·Ò1¨~#`øÙ x~#`øÙ˜      •               s o u r c e - m a p . j s                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                MIT License
+
+    Copyright (c) Microsoft Corporation.
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           // Copyright Â© 2021-present 650 Industries, Inc. (aka Expo)
+
+#include "ExpoModulesHostObject.h"
+#include "LazyObject.h"
+
+#include <folly/dynamic.h>
+#include <jsi/JSIDynamic.h>
+#include <react/bridging/LongLivedObject.h>
+
+namespace jsi = facebook::jsi;
+
+namespace expo {
+
+ExpoModulesHostObject::ExpoModulesHostObject(JSIInteropModuleRegistry *installer)
+  : installer(installer) {}
+
+/**
+ * Clears jsi references held by JSRegistry and JavaScriptRuntime. 
+ */
+ExpoModulesHostObject::~ExpoModulesHostObject() {
+  facebook::react::LongLivedObjectCollection::get().clear();
+  installer->jsRegistry.reset();
+  installer->runtimeHolder.reset();
+  installer->jsInvoker.reset();
+  installer->nativeInvoker.reset();
+  installer->jniDeallocator.reset();
+}
+
+jsi::Value ExpoModulesHostObject::get(jsi::Runtime &runtime, const jsi::PropNameID &name) {
+  auto cName = name.utf8(runtime);
+
+  if (!installer->hasModule(cName)) {
+    modulesCache.erase(cName);
+    return jsi::Value::undefined();
+  }
+  if (UniqueJSIObject &cachedObject = modulesCache[cName]) {
+    return jsi::Value(runtime, *cachedObject);
+  }
+
+  // Create a lazy object for the specific module. It defers initialization of the final module object.
+  LazyObject::Shared moduleLazyObject = std::make_shared<LazyObject>(
+    [this, cName](jsi::Runtime &rt) {
+      auto module = installer->getModule(cName);
+      module->cthis()->jsiInteropModuleRegistry = installer;
+      return module->cthis()->getJSIObject(rt);
+    });
+
+  // Save the module's lazy host object for later use.
+  modulesCache[cName] = std::make_unique<jsi::Object>(
+    jsi::Object::createFromHostObject(runtime, moduleLazyObject));
+
+  return jsi::Value(runtime, *modulesCache[cName]);
+}
+
+void ExpoModulesHostObject::set(jsi::Runtime &runtime, const jsi::PropNameID &name,
+                                const jsi::Value &value) {
+  throw jsi::JSError(
+    runtime,
+    "RuntimeError: Cannot override the host object for expo module '" + name.utf8(runtime) + "'"
+  );
+}
+
+std::vector<jsi::PropNameID> ExpoModulesHostObject::getPropertyNames(jsi::Runtime &rt) {
+  auto names = installer->getModulesName();
+  size_t size = names->size();
+  std::vector<jsi::PropNameID> result;
+  result.reserve(size);
+  for (int i = 0; i < size; i++) {
+    result.push_back(
+      jsi::PropNameID::forUtf8(rt, names->getElement(i)->toStdString())
+    );
+  }
+  return result;
+}
+} // namespace expo
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  /* -*- Mode: js; js-indent-level: 2; -*- */
+/*
+ * Copyright 2011 Mozilla Foundation and contributors
+ * Licensed under the New BSD license. See LICENSE or:
+ * http://opensource.org/licenses/BSD-3-Clause
+ */
+
+exports.GREATEST_LOWER_BOUND = 1;
+exports.LEAST_UPPER_BOUND = 2;
+
+/**
+ * Recursive implementation of binary search.
+ *
+ * @param aLow Indices here and lower do not contain the needle.
+ * @param aHigh Indices here and higher do not contain the needle.
+ * @param aNeedle The element being searched for.
+ * @param aHaystack The non-empty array being searched.
+ * @param aCompare Function which takes two elements and returns -1, 0, or 1.
+ * @param aBias Either 'binarySearch.GREATEST_LOWER_BOUND' or
+ *     'binarySearch.LEAST_UPPER_BOUND'. Specifies whether to return the
+ *     closest element that is smaller than or greater than the one we are
+ *     searching for, respectively, if the exact element cannot be found.
+ */
+function recursiveSearch(aLow, aHigh, aNeedle, aHaystack, aCompare, aBias) {
+  // This function terminates when one of the following is true:
+  //
+  //   1. We find the exact element we are looking for.
+  //
+  //   2. We did not find the exact element, but we can return the index of
+  //      the next-closest element.
+  //
+  //   3. We did not find the exact element, and there is no next-closest
+  //      element than the one we are searching for, so we return -1.
+  var mid = Math.floor((aHigh - aLow) / 2) + aLow;
+  var cmp = aCompare(aNeedle, aHaystack[mid], true);
+  if (cmp === 0) {
+    // Found the element we are looking for.
+    return mid;
+  }
+  else if (cmp > 0) {
+    // Our needle is greater than aHaystack[mid].
+    if (aHigh - mid > 1) {
+      // The element is in the upper half.
+      return recursiveSearch(mid, aHigh, aNeedle, aHaystack, aCompare, aBias);
+    }
+
+    // The exact needle element was not found in this haystack. Determine if
+    // we are in termination case (3) or (2) and return the appropriate thing.
+    if (aBias == exports.LEAST_UPPER_BOUND) {
+      return aHigh < aHaystack.length ? aHigh : -1;
+    } else {
+      return mid;
+    }
+  }
+  else {
+    // Our needle is less than aHaystack[mid].
+    if (mid - aLow > 1) {
+      // The element is in the lower half.
+      return recursiveSearch(aLow, mid, aNeedle, aHaystack, aCompare, aBias);
+    }
+
+    // we are in termination case (3) or (2) and return the appropriate thing.
+    if (aBias == exports.LEAST_UPPER_BOUND) {
+      return mid;
+    } else {
+      return aLow < 0 ? -1 : aLow;
+    }
+  }
+}
+
+/**
+ * This is an implementation of binary search which will always try and return
+ * the index of the closest element if there is no exact hit. This is because
+ * mappings between original and generated line/col pairs are single points,
+ * and there is an implicit region between each of them, so a miss just means
+ * that you aren't on the very start of a region.
+ *
+ * @param aNeedle The element you are looking for.
+ * @param aHaystack The array that is being searched.
+ * @param aCompare A function which takes the needle and an element in the
+ *     array and returns -1, 0, or 1 depending on whether the needle is less
+ *     than, equal to, or greater than the element, respectively.
+ * @param aBias Either 'binarySearch.GREATEST_LOWER_BOUND' or
+ *     'binarySearch.LEAST_UPPER_BOUND'. Specifies whether to return the
+ *     closest element that is smaller than or greater than the one we are
+ *     searching for, respectively, if the exact element cannot be found.
+ *     Defaults to 'binarySearch.GREATEST_LOWER_BOUND'.
+ */
+exports.search = function search(aNeedle, aHaystack, aCompare, aBias) {
+  if (aHaystack.length === 0) {
+    return -1;
+  }
+
+  var index = recursiveSearch(-1, aHaystack.length, aNeedle, aHaystack,
+                              aCompare, aBias || exports.GREATEST_LOWER_BOUND);
+  if (index < 0) {
+    return -1;
+  }
+
+  // We have found either the exact element, or the next-closest element than
+  // the one we are searching for. However, there may be more than one such
+  // element. Make sure we always return the smallest of these.
+  while (index - 1 >= 0) {
+    if (aCompare(aHaystack[index], aHaystack[index - 1], true) !== 0) {
+      break;
+    }
+    --index;
+  }
+
+  return index;
+};
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       /**
+ * @license React
+ * react-is.production.min.js
+ *
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+(function(){'use strict';(function(b,c){"object"===typeof exports&&"undefined"!==typeof module?c(exports):"function"===typeof define&&define.amd?define(["exports"],c):(b=b||self,c(b.ReactIs={}))})(this,function(b){function c(a){if("object"===typeof a&&null!==a){var b=a.$$typeof;switch(b){case q:switch(a=a.type,a){case d:case e:case f:case g:case h:return a;default:switch(a=a&&a.$$typeof,a){case t:case k:case l:case m:case n:case p:return a;default:return b}}case r:return b}}}var q=Symbol.for("react.element"),
+r=Symbol.for("react.portal"),d=Symbol.for("react.fragment"),f=Symbol.for("react.strict_mode"),e=Symbol.for("react
